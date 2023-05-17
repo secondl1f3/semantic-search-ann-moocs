@@ -1,0 +1,5 @@
+uvicorn
+requests
+fastapi
+pytest
+pytest-cov
