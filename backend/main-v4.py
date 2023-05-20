@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import json
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from sentence_transformers import SentenceTransformer, CrossEncoder
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -98,11 +98,11 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
             res = bienc_op[hit].split(" - ")
             result = {
                 "id": int(top_k_ids[hit]),
-                "title": res[0].replace('\\"', '"'),
-                "instructor": res[1].replace('\\"', '"'),
-                "subject": res[2].replace('\\"', '"'),
-                "provider": res[3].replace('\\"', '"'),
-                "url": res[4].replace('\\"', '"')
+                "title": res[0],
+                "instructor": res[1],
+                "subject": res[2],
+                "provider": res[3],
+                "url": res[4]
             }
             print(result)
             results.append(result)
@@ -115,7 +115,7 @@ async def root():
     return {"message": "Welcome to MoocMaven the first unified MOOCs Semantic Search platform!"}
 
 
-@app.post("/search")
+@app.post("/search", response_class=Response)
 def perform_search(query: str = "", lang: str = "", skip: int = 0, limit: int = 10):
     results = search(query, lang, skip, limit)
     print(results)
