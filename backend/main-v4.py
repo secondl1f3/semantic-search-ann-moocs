@@ -1,13 +1,11 @@
-import glob
+import json
 import logging
 import os
 import warnings
-from typing import List
 
 import faiss
 import numpy as np
 import pandas as pd
-import json
 import uvicorn
 from fastapi import FastAPI, Response, HTTPException
 from sentence_transformers import SentenceTransformer, CrossEncoder
@@ -78,7 +76,7 @@ def load_data(language):
 
 
 def search(query: str, lang: str, skip: int = 0, limit: int = 10):
-    res = []
+    results = []
     if lang in languages:
         bi_encoder, passages = load_data(lang)
         index = faiss.read_index(f'{lang}.index')
@@ -95,37 +93,39 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
 
         # Top-10 Cross-Encoder Re-ranker hits
         for hit in np.argsort(np.array(cross_scores))[::-1]:
-            res = bienc_op[hit].split(" - ")
-            res.insert(0, int(top_k_ids[hit]))
-
-    return res
+            result = bienc_op[hit].split(" - ")
+            result.insert(0, int(top_k_ids[hit]))
+            results.append(result)
+    return results
 
 
 def construct_responses(res):
     results = []
-    result = {
-        "id": res[0],
-        "title": res[1],
-        "instructor": res[3],
-        "provider": res[5],
-        "url": res[6]
-    }
-    results.append(result)
+    for r in res:
+        result = {
+            "id": r[0],
+            "title": r[1],
+            "instructor": r[3],
+            "provider": r[5],
+            "url": r[6]
+        }
+        results.append(result)
     return json.dumps(results, ensure_ascii=False)
 
 
 def construct_response_by_id(res):
     results = []
-    result = {
-        "id": res[0],
-        "title": res[1],
-        "description": res[2],
-        "instructor": res[3],
-        "subject": res[4],
-        "provider": res[5],
-        "url": res[6]
-    }
-    results.append(result)
+    for r in res:
+        result = {
+            "id": r[0],
+            "title": r[1],
+            "description": r[2],
+            "instructor": r[3],
+            "subject": r[4],
+            "provider": r[5],
+            "url": r[6]
+        }
+        results.append(result)
     return results
 
 
@@ -137,14 +137,12 @@ async def root():
 @app.post("/search", response_class=Response)
 def perform_search(query: str = "", lang: str = "", skip: int = 0, limit: int = 10):
     res = search(query, lang, skip, limit)
-    results = construct_responses(res)
-    return results
+    return construct_responses(res)
 
 
-@app.get('/results/{result_id}', response_class=Response)
-def get_result_by_id(result_id: int):
-    # Call your search function and retrieve the result by ID
-    res = search(query='', lang='', skip=0, limit=10)  # Replace with your actual implementation
+@app.get('/result', response_class=Response)
+def get_result_by_id(query: str = "", lang: str = "", result_id: int = 0):
+    res = search(query, lang, skip=0, limit=10)
     results = construct_response_by_id(res)
 
     for result in results:
