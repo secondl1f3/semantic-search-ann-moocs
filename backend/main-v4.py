@@ -67,8 +67,8 @@ def load_data(language):
         for csv_file in csv_files:
             data = pd.read_csv(csv_file, lineterminator='\n')
             data['Description'] = data['Description'].str[9:].str.strip()
-            passages.extend((data['Course Title'] + ' - ' + data['Provider'] + ' - ' + data['Course_Link'] + ' - ' +
-                             data['Subject']).values.tolist())
+            passages.extend((data['Course Title'] + ' - ' + data['Instructor'] + ' - ' + data['Subject'] + ' - ' +
+                             data['Provider'] + ' - ' + data['Course_Link']).values.tolist())
 
         languages[language]['passages'] = passages
         languages[language]['bi_encoder'] = bi_encoder
