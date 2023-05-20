@@ -97,12 +97,12 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
         for hit in np.argsort(np.array(cross_scores))[::-1]:
             res = bienc_op[hit].split(" - ")
             result = {
-                "id": int(top_k_ids[hit]),  # Convert int64 ID to integer
-                "title": res[0],
-                "instructor": res[1],
-                "subject": res[2],
-                "provider": res[3],
-                "url": res[4]
+                "id": int(top_k_ids[hit]),
+                "title": res[0].replace('\\"', '"'),
+                "instructor": res[1].replace('\\"', '"'),
+                "subject": res[2].replace('\\"', '"'),
+                "provider": res[3].replace('\\"', '"'),
+                "url": res[4].replace('\\"', '"')
             }
             print(result)
             results.append(result)
