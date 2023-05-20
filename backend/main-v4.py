@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import json
 import uvicorn
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, HTTPException
 from sentence_transformers import SentenceTransformer, CrossEncoder
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -67,8 +67,9 @@ def load_data(language):
         for csv_file in csv_files:
             data = pd.read_csv(csv_file, lineterminator='\n')
             data['Description'] = data['Description'].str[9:].str.strip()
-            passages.extend((data['Course Title'] + ' - ' + data['Instructor'] + ' - ' + data['Subject'] + ' - ' +
-                             data['Provider'] + ' - ' + data['Course_Link']).values.tolist())
+            data['Instructor'] = data['Instructor'].map(lambda x: x.lstrip('Taught by\n').rstrip('aAbBcC'))
+            passages.extend((data['Course Title'] + ' - ' + data['Description'] + ' - ' + data['Instructor'] + ' - ' +
+                             data['Subject'] + ' - ' + data['Provider'] + ' - ' + data['Course_Link']).values.tolist())
 
         languages[language]['passages'] = passages
         languages[language]['bi_encoder'] = bi_encoder
@@ -77,8 +78,7 @@ def load_data(language):
 
 
 def search(query: str, lang: str, skip: int = 0, limit: int = 10):
-    results = []
-
+    res = []
     if lang in languages:
         bi_encoder, passages = load_data(lang)
         index = faiss.read_index(f'{lang}.index')
@@ -96,18 +96,37 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
         # Top-10 Cross-Encoder Re-ranker hits
         for hit in np.argsort(np.array(cross_scores))[::-1]:
             res = bienc_op[hit].split(" - ")
-            result = {
-                "id": int(top_k_ids[hit]),
-                "title": res[0],
-                "instructor": res[1],
-                "subject": res[2],
-                "provider": res[3],
-                "url": res[4]
-            }
-            print(result)
-            results.append(result)
+            res.insert(0, int(top_k_ids[hit]))
 
+    return res
+
+
+def construct_responses(res):
+    results = []
+    result = {
+        "id": res[0],
+        "title": res[1],
+        "instructor": res[3],
+        "provider": res[5],
+        "url": res[6]
+    }
+    results.append(result)
     return json.dumps(results, ensure_ascii=False)
+
+
+def construct_response_by_id(res):
+    results = []
+    result = {
+        "id": res[0],
+        "title": res[1],
+        "description": res[2],
+        "instructor": res[3],
+        "subject": res[4],
+        "provider": res[5],
+        "url": res[6]
+    }
+    results.append(result)
+    return results
 
 
 @app.get("/")
@@ -117,9 +136,22 @@ async def root():
 
 @app.post("/search", response_class=Response)
 def perform_search(query: str = "", lang: str = "", skip: int = 0, limit: int = 10):
-    results = search(query, lang, skip, limit)
-    print(results)
+    res = search(query, lang, skip, limit)
+    results = construct_responses(res)
     return results
+
+
+@app.get('/results/{result_id}', response_class=Response)
+def get_result_by_id(result_id: int):
+    # Call your search function and retrieve the result by ID
+    res = search(query='', lang='', skip=0, limit=10)  # Replace with your actual implementation
+    results = construct_response_by_id(res)
+
+    for result in results:
+        if result['id'] == result_id:
+            return json.dumps(results, ensure_ascii=False)
+
+    raise HTTPException(status_code=404, detail="Result not found")
 
 
 if __name__ == "__main__":
