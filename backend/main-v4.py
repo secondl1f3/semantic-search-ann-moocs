@@ -76,7 +76,7 @@ def load_data(language):
     return languages[language]['bi_encoder'], languages[language]['passages']
 
 
-def search(query: str, lang: str, skip: int = 0, limit: int = 10) -> str:
+def search(query: str, lang: str, skip: int = 0, limit: int = 10):
     results = []
 
     if lang in languages:
@@ -117,7 +117,7 @@ async def root():
 @app.post("/search")
 def perform_search(query: str = "", lang: str = "", skip: int = 0, limit: int = 10):
     results = search(query, lang, skip, limit)
-    return {"results": results}
+    return results
 
 
 if __name__ == "__main__":
