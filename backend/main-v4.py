@@ -104,6 +104,7 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
                 "provider": res[3],
                 "url": res[4]
             }
+            print(result)
             results.append(result)
 
     return json.dumps(results)
@@ -117,6 +118,7 @@ async def root():
 @app.post("/search")
 def perform_search(query: str = "", lang: str = "", skip: int = 0, limit: int = 10):
     results = search(query, lang, skip, limit)
+    print(results)
     return results
 
 
