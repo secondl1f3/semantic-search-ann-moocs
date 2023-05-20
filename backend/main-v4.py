@@ -10,9 +10,15 @@ import uvicorn
 from fastapi import FastAPI, Response, HTTPException
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from pydantic import BaseModel
+import redis
+from redis_config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
+
+# Create a Redis client
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
+CACHE_PREFIX = "search_results:"
 
 class SearchRequest(BaseModel):
     query: str
@@ -85,6 +91,13 @@ def load_data(language):
 
 
 def search(query: str, lang: str, skip: int = 0, limit: int = 10):
+    cache_key = f"{CACHE_PREFIX}{query}-{lang}-{skip}-{limit}"
+
+    if redis_client.exists(cache_key):
+        # Retrieve the cached results and return them
+        cached_results = redis_client.get(cache_key)
+        return json.loads(cached_results)
+
     results = []
     if lang in languages:
         bi_encoder, passages = load_data(lang)
@@ -105,6 +118,10 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
             result = bienc_op[hit].split(" - ")
             result.insert(0, int(top_k_ids[hit]))
             results.append(result)
+
+        # Cache the results in Redis
+        redis_client.set(cache_key, json.dumps(results))
+
     return results
 
 
