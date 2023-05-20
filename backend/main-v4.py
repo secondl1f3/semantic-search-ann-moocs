@@ -107,7 +107,7 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
             print(result)
             results.append(result)
 
-    return json.dumps(results)
+    return json.dumps(results, ensure_ascii=False)
 
 
 @app.get("/")
