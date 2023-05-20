@@ -9,8 +9,17 @@ import pandas as pd
 import uvicorn
 from fastapi import FastAPI, Response, HTTPException
 from sentence_transformers import SentenceTransformer, CrossEncoder
+from pydantic import BaseModel
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+
+class SearchRequest(BaseModel):
+    query: str
+    lang: str
+    skip: int = 0
+    limit: int = 10
+
 
 print("start app")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -135,19 +144,19 @@ async def root():
 
 
 @app.post("/search", response_class=Response)
-def perform_search(query: str = "", lang: str = "", skip: int = 0, limit: int = 10):
-    res = search(query, lang, skip, limit)
+def perform_search(request: SearchRequest):
+    res = search(request.query, request.lang, request.skip, request.limit)
     return construct_responses(res)
 
 
-@app.get('/result', response_class=Response)
+@app.get('/search', response_class=Response)
 def get_result_by_id(query: str = "", lang: str = "", result_id: int = 0):
     res = search(query, lang, skip=0, limit=10)
     results = construct_response_by_id(res)
 
     for result in results:
         if result['id'] == result_id:
-            return json.dumps(results, ensure_ascii=False)
+            return json.dumps(result, ensure_ascii=False)
 
     raise HTTPException(status_code=404, detail="Result not found")
 
