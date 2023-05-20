@@ -114,7 +114,9 @@ def construct_responses(res):
         result = {
             "id": r[0],
             "title": r[1],
+            "description": r[2],
             "instructor": r[3],
+            "subject": r[4],
             "provider": r[5],
             "url": r[6]
         }
@@ -150,12 +152,12 @@ def perform_search(request: SearchRequest):
 
 
 @app.get('/search', response_class=Response)
-def get_result_by_id(query: str = "", lang: str = "", result_id: int = 0):
+def get_result_by_id(query: str = "", lang: str = "", id: int = 0):
     res = search(query, lang, skip=0, limit=10)
     results = construct_response_by_id(res)
 
     for result in results:
-        if result['id'] == result_id:
+        if result['id'] == id:
             return json.dumps(result, ensure_ascii=False)
 
     raise HTTPException(status_code=404, detail="Result not found")
