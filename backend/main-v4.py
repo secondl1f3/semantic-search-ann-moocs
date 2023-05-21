@@ -39,11 +39,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 users = [
     {
         "username": "user1",
-        "password": "$2b$12$OPlsZbzFqP/uie3WfOov..cc4tTEirawp.wpx9ryVj9ijQ2c4hGhe",  # Hashed password: "password1"
+        "password": "$2b$12$54e2ETBEs55x29rBPrXWJurwapWxsFrT7ZXz9OAaZfFZg5fWCoSVe",  # Hashed password: "password1"
     },
     {
         "username": "user2",
-        "password": "$2b$12$XCx19H6PNUEmGp.eVQu6BOOUt2m8kWajdjI.VMF6oDRScDlD12Udy",  # Hashed password: "password2"
+        "password": "$2b$12$DR2.ZKp2SlLw/o3LGAb6j.XwUN.ykQ5vdv50m7vjcppwC3OU2wh.C",  # Hashed password: "password2"
     },
 ]
 
@@ -242,7 +242,7 @@ def get_result_by_id(query: str = "", lang: str = "", id: int = 0):
     raise HTTPException(status_code=404, detail="Result not found")
 
 
-@app.get("/csv/{language}", response_class=Response)
+@app.get("/download/{language}", response_class=Response)
 def get_csv_file(language: str):
     # Assuming you have language-specific CSV files in a "dataset" folder
     file_path = os.path.join("dataset", f"{language}.csv")
@@ -260,6 +260,22 @@ def get_csv_file(language: str):
 
     # Return the CSV content as the response
     return Response(content=csv_content, headers=response_headers)
+
+
+@app.get("/providers/{lang}", response_class=Response)
+def get_providers(lang: str):
+    if lang not in languages:
+        raise HTTPException(status_code=404, detail="Language not found")
+
+    csv_files = languages[lang]['csv_files']
+    providers = set()
+
+    for csv_file in csv_files:
+        csv_path = os.path.join("dataset", lang, csv_file)
+        data = pd.read_csv(csv_path, lineterminator='\n')
+        providers.update(data['Provider'].tolist())
+
+    return {"providers": list(providers)}
 
 
 # API endpoint for user registration
