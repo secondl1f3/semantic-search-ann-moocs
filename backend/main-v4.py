@@ -16,6 +16,8 @@ from fastapi import FastAPI, Response, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
+from fastapi_limiter.limits import Rate, Minutes
+
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, CrossEncoder
@@ -126,11 +128,8 @@ languages = {
 
 app = FastAPI()
 
-limiter = FastAPILimiter(
-    key_func=lambda request: request.client.host,  # Use client IP as the key
-    default_limits=["2/minute"],  # Set the default rate limit
-    headers_enabled=True,  # Include rate limit headers in the response
-)
+rate_limit = Rate(limit=2, period=Minutes(1))
+limiter = RateLimiter(rate_limit)
 
 app.add_middleware(
     RateLimiter,
