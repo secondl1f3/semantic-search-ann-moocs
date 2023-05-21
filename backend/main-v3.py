@@ -25,7 +25,7 @@ def load_arabic():
     bi_encoder = SentenceTransformer(model_name)
 
     # Combine the CSV files efficiently
-    csv_files = glob.glob('arabic.csv')
+    csv_files = glob.glob('dataset/arabic.csv')
     data = pd.concat([pd.read_csv(csv, lineterminator='\n') for csv in csv_files], axis=0)
 
     # Clean the data

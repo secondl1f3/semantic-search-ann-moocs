@@ -1,24 +1,85 @@
 import json
 import logging
 import os
+import secrets
 import warnings
+from datetime import datetime, timedelta
 
 import faiss
+import jwt
 import numpy as np
 import pandas as pd
-import uvicorn
-from fastapi import FastAPI, Response, HTTPException
-from sentence_transformers import SentenceTransformer, CrossEncoder
-from pydantic import BaseModel
 import redis
+import uvicorn
+from fastapi import Depends
+from fastapi import FastAPI, Response, HTTPException
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from passlib.context import CryptContext
+from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer, CrossEncoder
+
 from redis_config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-
 # Create a Redis client
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
 CACHE_PREFIX = "search_results:"
+
+# Define a secret key for JWT encoding/decoding
+SECRET_KEY = secrets.token_urlsafe(32)
+
+# Define token expiration time
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# User data (replace with your own user database or ORM)
+users = [
+    {
+        "username": "user1",
+        "password": "$2b$12$OPlsZbzFqP/uie3WfOov..cc4tTEirawp.wpx9ryVj9ijQ2c4hGhe",  # Hashed password: "password1"
+    },
+    {
+        "username": "user2",
+        "password": "$2b$12$XCx19H6PNUEmGp.eVQu6BOOUt2m8kWajdjI.VMF6oDRScDlD12Udy",  # Hashed password: "password2"
+    },
+]
+
+
+# Function to verify password
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+# Function to get user by username
+def get_user(username):
+    for user in users:
+        if user["username"] == username:
+            return user
+
+
+# Function to authenticate user
+def authenticate_user(username, password):
+    user = get_user(username)
+    if not user or not verify_password(password, user["password"]):
+        return False
+    return user
+
+
+# Function to create access token
+def create_access_token(data, expires_delta):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
+    return encoded_jwt
+
+
+# OAuth2 scheme for authentication
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
 
 class SearchRequest(BaseModel):
     query: str
@@ -78,7 +139,8 @@ def load_data(language):
     if languages[language]['passages'] is None:
         bi_encoder = SentenceTransformer(model_name)
         for csv_file in csv_files:
-            data = pd.read_csv(csv_file, lineterminator='\n')
+            csv_path = os.path.join('dataset', csv_file)
+            data = pd.read_csv(csv_path, lineterminator='\n')
             data['Description'] = data['Description'].str[9:].str.strip()
             data['Instructor'] = data['Instructor'].map(lambda x: x.lstrip('Taught by\n').rstrip('aAbBcC'))
             passages.extend((data['Course Title'] + ' - ' + data['Description'] + ' - ' + data['Instructor'] + ' - ' +
@@ -178,6 +240,72 @@ def get_result_by_id(query: str = "", lang: str = "", id: int = 0):
             return json.dumps(result, ensure_ascii=False)
 
     raise HTTPException(status_code=404, detail="Result not found")
+
+
+@app.get("/csv/{language}", response_class=Response)
+def get_csv_file(language: str):
+    # Assuming you have language-specific CSV files in a "dataset" folder
+    file_path = os.path.join("dataset", f"{language}.csv")
+
+    # Open the CSV file
+    with open(file_path, "r") as file:
+        # Read the contents of the file
+        csv_content = file.read()
+
+    # Set the response headers
+    response_headers = {
+        "Content-Disposition": f"attachment; filename={language}.csv",
+        "Content-Type": "text/csv"
+    }
+
+    # Return the CSV content as the response
+    return Response(content=csv_content, headers=response_headers)
+
+
+# API endpoint for user registration
+@app.post("/register")
+def register(username: str, password: str):
+    # Check if username is already taken
+    if get_user(username):
+        raise HTTPException(status_code=400, detail="Username already registered")
+
+    # Hash the password
+    hashed_password = pwd_context.hash(password)
+
+    # Create a new user
+    user = {"username": username, "password": hashed_password}
+    users.append(user)
+
+    return {"message": "User registered successfully"}
+
+
+# API endpoint for user login
+@app.post("/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["username"]}, expires_delta=access_token_expires
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+# Protected API endpoint
+@app.get("/protected")
+def protected_route(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        username = payload["sub"]
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except (jwt.InvalidTokenError, jwt.DecodeError):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    return {"message": f"Hello, {username}! This is a protected route"}
 
 
 if __name__ == "__main__":

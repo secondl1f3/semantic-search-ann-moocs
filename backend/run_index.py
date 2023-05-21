@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 # Commented out IPython magic to ensure Python compatibility.
 # %cd /content/drive/My Drive/research
 
-for ix, csv in enumerate(glob.glob('arabic.csv')):
+for ix, csv in enumerate(glob.glob('dataset/arabic.csv')):
     if ix == 0:
         data = pd.read_csv(csv, lineterminator='\n')
     else:
@@ -36,7 +36,7 @@ def search(query, index, lang):
     print("Searching query:", query)
     print("Searching language:", lang)
 
-    for ix, csv in enumerate(glob.glob('arabic.csv')):
+    for ix, csv in enumerate(glob.glob('dataset/arabic.csv')):
         if ix == 0:
             data = pd.read_csv(csv, lineterminator='\n')
         else:
