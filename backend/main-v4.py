@@ -14,9 +14,13 @@ import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, CrossEncoder
+from starlette.responses import JSONResponse
+from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
 from redis_config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 
@@ -121,6 +125,21 @@ languages = {
 }
 
 app = FastAPI()
+
+limiter = FastAPILimiter(
+    key_func=lambda request: request.client.host,  # Use client IP as the key
+    default_limits=["2/minute"],  # Set the default rate limit
+    headers_enabled=True,  # Include rate limit headers in the response
+)
+
+app.add_middleware(
+    RateLimiter,
+    app=limiter,
+    on_failure=lambda request, _: JSONResponse(
+        status_code=HTTP_429_TOO_MANY_REQUESTS,
+        content={"message": "Too many requests"}
+    )
+)
 
 
 @app.on_event("startup")
@@ -242,8 +261,9 @@ def get_result_by_id(query: str = "", lang: str = "", id: int = 0):
     raise HTTPException(status_code=404, detail="Result not found")
 
 
-@app.get("/download/{language}", response_class=Response)
-def get_csv_file(language: str):
+@app.get("/download/{language}", response_class=Response, dependencies=[Depends(limiter)])
+def get_csv_file(language: str, token: str = Depends(oauth2_scheme)):
+    verify_token(token)
     # Assuming you have language-specific CSV files in a "dataset" folder
     file_path = os.path.join("dataset", f"{language}.csv")
 
@@ -260,6 +280,17 @@ def get_csv_file(language: str):
 
     # Return the CSV content as the response
     return Response(content=csv_content, headers=response_headers)
+
+
+def verify_token(token):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        username = payload["sub"]
+        return username
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except (jwt.InvalidTokenError, jwt.DecodeError):
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.get("/providers/{lang}", response_class=Response)
