@@ -14,9 +14,9 @@ import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
-from fastapi_limiter.limits import Rate, Minutes
+# from fastapi_limiter import FastAPILimiter
+# from fastapi_limiter.depends import RateLimiter
+# from fastapi_limiter.limits import Rate, Minutes
 
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -152,17 +152,17 @@ languages = {
 
 app = FastAPI()
 
-rate_limit = Rate(limit=2, period=Minutes(1))
-limiter = RateLimiter(rate_limit)
-
-app.add_middleware(
-    RateLimiter,
-    app=limiter,
-    on_failure=lambda request, _: JSONResponse(
-        status_code=HTTP_429_TOO_MANY_REQUESTS,
-        content={"message": "Too many requests"}
-    )
-)
+# rate_limit = Rate(limit=2, period=Minutes(1))
+# limiter = RateLimiter(rate_limit)
+#
+# app.add_middleware(
+#     RateLimiter,
+#     app=limiter,
+#     on_failure=lambda request, _: JSONResponse(
+#         status_code=HTTP_429_TOO_MANY_REQUESTS,
+#         content={"message": "Too many requests"}
+#     )
+# )
 
 
 @app.on_event("startup")
@@ -284,7 +284,7 @@ def get_result_by_id(query: str = "", lang: str = "", id: int = 0):
     raise HTTPException(status_code=404, detail="Result not found")
 
 
-@app.get("/download/{language}", response_class=Response, dependencies=[Depends(limiter)])
+@app.get("/download/{language}", response_class=Response)
 def get_csv_file(language: str, token: str = Depends(oauth2_scheme)):
     verify_token(token)
     # Assuming you have language-specific CSV files in a "dataset" folder
