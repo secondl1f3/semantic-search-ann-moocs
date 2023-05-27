@@ -273,8 +273,15 @@ async def root():
 def perform_search(request: SearchRequest):
     res = search(request.query, request.lang, request.skip, request.limit)
     total_results = len(res)
-    # Return the results as the API response with pagination information
-    return {"results": construct_responses(res), "total_results": total_results}
+    # Construct the response as a dictionary
+    response_data = {
+        "results": construct_responses(res),
+        "total_results": total_results
+    }
+    # Convert the response to JSON-encoded content
+    response_content = json.dumps(response_data)
+    # Return the response with appropriate headers
+    return Response(content=response_content, media_type="application/json")
 
 
 @app.get('/search', response_class=Response)
@@ -331,8 +338,9 @@ def get_providers(lang: str):
 
     for csv_file in csv_files:
         csv_path = os.path.join("model", lang, csv_file)
-        data = pd.read_csv(csv_path, lineterminator='\n')
-        providers.update(data['Provider'].tolist())
+        with open(csv_path, "r") as file:
+            data = file.read()
+            providers.update(data['Provider'].tolist())
 
     return {"providers": list(providers)}
 
