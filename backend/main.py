@@ -15,6 +15,7 @@ import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, CrossEncoder
@@ -343,7 +344,7 @@ def verify_token(token):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-@app.get("/providers/{lang}", response_class=Response)
+@app.get("/providers/{lang}")
 def get_providers(lang: str):
     if lang not in languages:
         raise HTTPException(status_code=404, detail="Language not found")
@@ -356,7 +357,7 @@ def get_providers(lang: str):
         data = pd.read_csv(csv_path, lineterminator='\n')
         providers.update(data['Provider'].tolist())
 
-    return {"providers": list(providers)}
+    return JSONResponse(content={"providers": list(providers)})
 
 
 # API endpoint for user registration
