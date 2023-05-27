@@ -288,9 +288,11 @@ async def root():
 def perform_search(request: SearchRequest):
     res = search(request.query, request.lang, request.skip, request.limit)
     total_results = len(res)
-    # Construct the response as a dictionary
+    # Parse the JSON-encoded results string into a list of dictionaries
+    results = json.loads(construct_responses(res))
+    # Construct the response
     response_data = {
-        "results": construct_responses(res),
+        "results": results,
         "total_results": total_results
     }
     # Return the response with appropriate headers
