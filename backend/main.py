@@ -4,6 +4,7 @@ import os
 import secrets
 import warnings
 from datetime import datetime, timedelta
+from typing import List
 
 import faiss
 import jwt
@@ -14,17 +15,15 @@ import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-# from fastapi_limiter import FastAPILimiter
-# from fastapi_limiter.depends import RateLimiter
-# from fastapi_limiter.limits import Rate, Minutes
-
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, CrossEncoder
-from starlette.responses import JSONResponse
-from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
 from redis_config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
+
+# from fastapi_limiter import FastAPILimiter
+# from fastapi_limiter.depends import RateLimiter
+# from fastapi_limiter.limits import Rate, Minutes
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
@@ -52,6 +51,21 @@ users = [
         "password": "$2b$12$DR2.ZKp2SlLw/o3LGAb6j.XwUN.ykQ5vdv50m7vjcppwC3OU2wh.C",  # Hashed password: "password2"
     },
 ]
+
+
+class SearchResult(BaseModel):
+    id: int
+    title: str
+    description: str
+    instructor: str
+    subject: str
+    provider: str
+    url: str
+
+
+class SearchResponse(BaseModel):
+    results: List[SearchResult]
+    total_results: int
 
 
 # Function to verify password
@@ -154,6 +168,7 @@ app = FastAPI(
     title='MOOCMaven API',
     description='Unified MOOCs Open Platform API'
 )
+
 
 # rate_limit = Rate(limit=2, period=Minutes(1))
 # limiter = RateLimiter(rate_limit)
@@ -269,7 +284,7 @@ async def root():
     return {"message": "Welcome to MoocMaven the first unified MOOCs Semantic Search platform!"}
 
 
-@app.post("/search", response_class=Response)
+@app.post("/search", response_model=SearchResponse)
 def perform_search(request: SearchRequest):
     res = search(request.query, request.lang, request.skip, request.limit)
     total_results = len(res)
@@ -278,10 +293,8 @@ def perform_search(request: SearchRequest):
         "results": construct_responses(res),
         "total_results": total_results
     }
-    # Convert the response to JSON-encoded content
-    response_content = json.dumps(response_data)
     # Return the response with appropriate headers
-    return Response(content=response_content, media_type="application/json")
+    return response_data
 
 
 @app.get('/search', response_class=Response)
@@ -338,9 +351,8 @@ def get_providers(lang: str):
 
     for csv_file in csv_files:
         csv_path = os.path.join("model", lang, csv_file)
-        with open(csv_path, "r") as file:
-            data = file.read()
-            providers.update(data['Provider'].tolist())
+        data = pd.read_csv(csv_path, lineterminator='\n')
+        providers.update(data['Provider'].tolist())
 
     return {"providers": list(providers)}
 
