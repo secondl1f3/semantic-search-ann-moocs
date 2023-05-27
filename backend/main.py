@@ -150,7 +150,10 @@ languages = {
     }
 }
 
-app = FastAPI()
+app = FastAPI(
+    title='MOOCMaven API',
+    description='Unified MOOCs Open Platform API'
+)
 
 # rate_limit = Rate(limit=2, period=Minutes(1))
 # limiter = RateLimiter(rate_limit)
@@ -269,7 +272,9 @@ async def root():
 @app.post("/search", response_class=Response)
 def perform_search(request: SearchRequest):
     res = search(request.query, request.lang, request.skip, request.limit)
-    return construct_responses(res)
+    total_results = len(res)
+    # Return the results as the API response with pagination information
+    return {"results": construct_responses(res), "total_results": total_results}
 
 
 @app.get('/search', response_class=Response)
