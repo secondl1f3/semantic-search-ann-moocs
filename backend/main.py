@@ -184,7 +184,7 @@ def load_data(language):
     if languages[language]['passages'] is None:
         bi_encoder = SentenceTransformer(model_name)
         for csv_file in csv_files:
-            csv_path = os.path.join(language, csv_file)
+            csv_path = os.path.join("model", language, csv_file)
             data = pd.read_csv(csv_path, lineterminator='\n')
             data['Description'] = data['Description'].str[9:].str.strip()
             data['Instructor'] = data['Instructor'].map(lambda x: x.lstrip('Taught by\n').rstrip('aAbBcC'))
@@ -208,7 +208,7 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
     results = []
     if lang in languages:
         bi_encoder, passages = load_data(lang)
-        index = faiss.read_index(os.path.join(lang, f'{lang}.index'))
+        index = faiss.read_index(os.path.join("model", lang, f'{lang}.index'))
         query_vector = bi_encoder.encode([query])
         top_k = index.search(query_vector, limit + skip)
         top_k_ids = top_k[1].tolist()[0]
@@ -293,7 +293,7 @@ def get_result_by_id(query: str = "", lang: str = "", id: int = 0):
 def get_csv_file(language: str, token: str = Depends(oauth2_scheme)):
     verify_token(token)
     # Assuming you have language-specific CSV files in a "dataset" folder
-    file_path = os.path.join(f"{language}.csv")
+    file_path = os.path.join("model", language, f"{language}.csv")
 
     # Open the CSV file
     with open(file_path, "r") as file:
@@ -330,7 +330,7 @@ def get_providers(lang: str):
     providers = set()
 
     for csv_file in csv_files:
-        csv_path = os.path.join(lang, csv_file)
+        csv_path = os.path.join("model", lang, csv_file)
         data = pd.read_csv(csv_path, lineterminator='\n')
         providers.update(data['Provider'].tolist())
 
