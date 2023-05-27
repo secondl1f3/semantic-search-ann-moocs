@@ -338,7 +338,7 @@ def get_providers(lang: str):
 
 
 # API endpoint for user registration
-@app.post("/register")
+@app.post("/register", include_in_schema=False)
 def register(username: str, password: str):
     # Check if username is already taken
     if get_user(username):
@@ -355,7 +355,7 @@ def register(username: str, password: str):
 
 
 # API endpoint for user login
-@app.post("/login")
+@app.post("/login", include_in_schema=False)
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -370,7 +370,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 # Protected API endpoint
-@app.get("/protected")
+@app.get("/protected", include_in_schema=False)
 def protected_route(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
