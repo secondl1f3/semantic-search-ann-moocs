@@ -1,11 +1,11 @@
 import json
 import logging
 import os
+import random
 import secrets
 import warnings
 from datetime import datetime, timedelta
 from typing import List
-import random
 
 import faiss
 import jwt
@@ -15,8 +15,9 @@ import redis
 import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI, Response, HTTPException
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, CrossEncoder
@@ -28,6 +29,19 @@ from redis_config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 # from fastapi_limiter.limits import Rate, Minutes
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+app = FastAPI(
+    title='MOOCMaven API',
+    description='Unified MOOCs Open Platform API'
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create a Redis client
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
@@ -165,11 +179,6 @@ languages = {
         'bi_encoder': None
     }
 }
-
-app = FastAPI(
-    title='MOOCMaven API',
-    description='Unified MOOCs Open Platform API'
-)
 
 
 # rate_limit = Rate(limit=2, period=Minutes(1))
