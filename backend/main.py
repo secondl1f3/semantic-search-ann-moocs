@@ -5,6 +5,7 @@ import secrets
 import warnings
 from datetime import datetime, timedelta
 from typing import List
+import random
 
 import faiss
 import jwt
@@ -409,6 +410,25 @@ def protected_route(token: str = Depends(oauth2_scheme)):
 @app.get("/languages")
 def get_supported_languages():
     return {"languages": list(languages.keys())}
+
+
+@app.get("/lucky")
+def get_random_title(language: str):
+    file_path = f"model/{language}/{language}.csv"
+
+    try:
+        df = pd.read_csv(file_path)
+
+        if df.empty:
+            return {"error": "No titles found for the specified language"}
+
+        titles = df['title'].tolist()
+        random_title = random.choice(titles)
+
+        return {"title": random_title}
+
+    except FileNotFoundError:
+        return {"error": "Language not found"}
 
 
 if __name__ == "__main__":
