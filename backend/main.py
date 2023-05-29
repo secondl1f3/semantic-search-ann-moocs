@@ -413,16 +413,16 @@ def get_supported_languages():
 
 
 @app.get("/lucky")
-def get_random_title(language: str):
-    file_path = f"model/{language}/{language}.csv"
+def get_random_title(lang: str):
+    file_path = f"model/{lang}/{lang}.csv"
 
     try:
-        df = pd.read_csv(file_path)
+        data = pd.read_csv(file_path, lineterminator='\n')
 
-        if df.empty:
+        if data.empty:
             return {"error": "No titles found for the specified language"}
 
-        titles = df['title'].tolist()
+        titles = data['Course Title'].tolist()
         random_title = random.choice(titles)
 
         return {"title": random_title}
