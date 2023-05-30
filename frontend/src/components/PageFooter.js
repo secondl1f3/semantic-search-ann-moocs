@@ -43,7 +43,7 @@ class PageFooter extends Component {
             </Popover>
           </div>
             <div className="page-footer-item">
-                <a href="http://127.0.0.1:8000/docs">
+                <a href="https://api.moocmaven.com/docs">
                     API Docs
                 </a>
             </div>
