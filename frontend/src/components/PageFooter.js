@@ -42,6 +42,11 @@ class PageFooter extends Component {
               </Button>
             </Popover>
           </div>
+            <div className="page-footer-item">
+                <a href="http://127.0.0.1:8000/docs">
+                    API Docs
+                </a>
+            </div>
           <div className="page-footer-item">
             <a href="mailto:atatang@stu.kau.edu.sa">
               Contact
