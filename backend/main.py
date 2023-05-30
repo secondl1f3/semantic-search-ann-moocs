@@ -127,6 +127,7 @@ class SearchRequest(BaseModel):
 print("start app")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-2-v2')
+en_cross_encoder = CrossEncoder('cross-encoder/ms-marco-TinyBERT-L-2-v2')
 print("cross finished")
 
 languages = {
@@ -244,7 +245,10 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
         # Re-Ranking
         cross_inp = [[query, passages[hit]] for hit in top_k_ids]
         bienc_op = [passages[hit] for hit in top_k_ids]
-        cross_scores = cross_encoder.predict(cross_inp)
+        if lang == 'english':
+            cross_scores = en_cross_encoder.predict(cross_inp)
+        else:
+            cross_scores = cross_encoder.predict(cross_inp)
 
         # Top-10 Cross-Encoder Re-ranker hits
         for hit in np.argsort(np.array(cross_scores))[::-1]:
