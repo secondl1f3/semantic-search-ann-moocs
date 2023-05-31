@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import random
 import secrets
 import warnings
 from datetime import datetime, timedelta
@@ -14,8 +15,9 @@ import redis
 import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI, Response, HTTPException
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, CrossEncoder
@@ -27,6 +29,19 @@ from redis_config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 # from fastapi_limiter.limits import Rate, Minutes
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+app = FastAPI(
+    title='MOOCMaven API',
+    description='Unified MOOCs Open Platform API'
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create a Redis client
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
@@ -112,6 +127,7 @@ class SearchRequest(BaseModel):
 print("start app")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-2-v2')
+en_cross_encoder = CrossEncoder('cross-encoder/ms-marco-TinyBERT-L-2-v2')
 print("cross finished")
 
 languages = {
@@ -164,11 +180,6 @@ languages = {
         'bi_encoder': None
     }
 }
-
-app = FastAPI(
-    title='MOOCMaven API',
-    description='Unified MOOCs Open Platform API'
-)
 
 
 # rate_limit = Rate(limit=2, period=Minutes(1))
@@ -234,7 +245,10 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
         # Re-Ranking
         cross_inp = [[query, passages[hit]] for hit in top_k_ids]
         bienc_op = [passages[hit] for hit in top_k_ids]
-        cross_scores = cross_encoder.predict(cross_inp)
+        if lang == 'english':
+            cross_scores = en_cross_encoder.predict(cross_inp)
+        else:
+            cross_scores = cross_encoder.predict(cross_inp)
 
         # Top-10 Cross-Encoder Re-ranker hits
         for hit in np.argsort(np.array(cross_scores))[::-1]:
@@ -409,6 +423,25 @@ def protected_route(token: str = Depends(oauth2_scheme)):
 @app.get("/languages")
 def get_supported_languages():
     return {"languages": list(languages.keys())}
+
+
+@app.get("/lucky")
+def get_random_title(lang: str):
+    file_path = f"model/{lang}/{lang}.csv"
+
+    try:
+        data = pd.read_csv(file_path, lineterminator='\n')
+
+        if data.empty:
+            return {"error": "No titles found for the specified language"}
+
+        titles = data['Course Title'].tolist()
+        random_title = random.choice(titles)
+
+        return {"title": random_title}
+
+    except FileNotFoundError:
+        return {"error": "Language not found"}
 
 
 if __name__ == "__main__":
