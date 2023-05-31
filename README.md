@@ -1,6 +1,4 @@
-# semantic-search-ann-moocs
-
-# Semantic Search Unified MOOCs
+# Semantic Search Unified MOOCs | MoocMaven Open Data Platform
 
 This repository contains the source code for a semantic search application for Unified MOOCs (Massive Open Online Courses). The application allows users to search for MOOCs based on their query and retrieve relevant results using semantic search techniques.
 
@@ -49,4 +47,7 @@ Contributions are welcome! If you find any issues or have suggestions for improv
 
 ## License
 This project is licensed under the MIT License.
+
+## Cite this repository
+[![DOI](https://zenodo.org/badge/642121034.svg)](https://zenodo.org/badge/latestdoi/642121034)
 
