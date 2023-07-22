@@ -9,9 +9,9 @@ export const postSearch = ({ searchValue, lang }) => {
   const url = `https://api.moocmaven.com/search`;
   const body = {
     query: searchValue,
-    lang: lang || "arabic",
+    lang: lang || "english",
     skip: 0,
-    limit: 10,
+    limit: 20,
   };
   return (dispatch) => {
     dispatch({

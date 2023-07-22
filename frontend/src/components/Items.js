@@ -10,7 +10,7 @@ const Items = ({ data = [] }) => {
             <List.Item key={`item-${index}`}>
               <div>
                 <Anchor href={item.url} target="_blank">
-                  {item.title}
+                  {item.title} - {item.subject}
                 </Anchor>
                 <div>
                   <Text c="dimmed" lineClamp={2}>
@@ -18,7 +18,7 @@ const Items = ({ data = [] }) => {
                   </Text>
                 </div>
                 <div>
-                  <Text fw={500}>{item.instructor}</Text>
+                  <Text fw={500}>{item.provider} - {item.instructor}</Text>
                 </div>
               </div>
             </List.Item>
