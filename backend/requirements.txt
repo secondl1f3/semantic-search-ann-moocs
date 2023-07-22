@@ -3,3 +3,5 @@ requests
 fastapi
 pytest
 pytest-cov
+locust
+jwt
