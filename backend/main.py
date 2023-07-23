@@ -127,7 +127,7 @@ class SearchRequest(BaseModel):
 
 print("start app")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-2-v2')
+non_en_cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-2-v2')
 en_cross_encoder = CrossEncoder('cross-encoder/ms-marco-TinyBERT-L-2-v2')
 print("cross finished")
 
@@ -229,22 +229,32 @@ def load_language(lang):
 
     model_name = languages[lang]['model_name']
     csv_files = languages[lang]['csv_files']
-    for csv_file in csv_files:
-        csv_path = os.path.join("model", lang, csv_file)
-        data = pd.read_csv(csv_path, lineterminator='\n')
-        data['Description'] = data['Description'].str[9:].str.strip()            
-        data['Instructor'] = data['Instructor'].map(lambda x: x.lstrip('Taught by\n').rstrip('aAbBcC'))
+    data = pd.DataFrame()
+    for ix, csv in enumerate(glob.glob(csv_files[0])):
+        if ix == 0:
+            data = pd.read_csv(csv, lineterminator='\n')
+        else:
+            temp = pd.read_csv(csv, lineterminator='\n')
+            data = pd.concat([data, temp], axis=0).reset_index(drop=True)
 
+    data = data.dropna(subset=['Course Title', 'Description']).reset_index(drop=True)
+    data['Description'] = data['Description'].apply(lambda x: x.replace('\n', ' ')[9:].strip())
+    data['Instructor'] = data['Instructor'].map(lambda x: x.lstrip('Taught by\n').rstrip('aAbBcC'))
+
+    # We use the Bi-Encoder to encode all passages, so that we can use it with semantic search
     bi_encoder = SentenceTransformer(model_name)
-    top_k = 100
+    top_k = 100  # Number of passages we want to retrieve with the bi-encoder
 
-    crossEncoder = cross_encoder
+    # The bi-encoder will retrieve 100 documents. We use a cross-encoder, to re-rank the results list to improve the quality
+    cross_encoder = non_en_cross_encoder
     if lang == 'english':
-      crossEncoder = en_cross_encoder
+      cross_encoder = en_cross_encoder
 
     passages = (data['Course Title'] + ' - ' + data['Description'] + ' - ' + data['Instructor'] + ' - ' + data['Subject'] + ' - ' + data['Provider'] + ' - ' + data['Course_Link']).values.tolist()
 
-    return bi_encoder, crossEncoder, passages
+    # If you like, you can also limit the number of passages you want to use
+    return bi_encoder, cross_encoder, passages
+
 
 
 
