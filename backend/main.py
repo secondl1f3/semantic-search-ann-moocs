@@ -229,9 +229,6 @@ def load_language(lang):
 
     model_name = languages[lang]['model_name']
     csv_files = languages[lang]['csv_files']
-    print(model_name)
-    print(csv_files)
-    print(csv_files[0])
     data = pd.DataFrame()
     for ix, csv in enumerate(glob.glob(csv_files[0])):
         if ix == 0:
@@ -240,7 +237,6 @@ def load_language(lang):
             temp = pd.read_csv(csv, lineterminator='\n')
             data = pd.concat([data, temp], axis=0).reset_index(drop=True)
 
-    print('len data ', len(data))
     data = data.dropna(subset=['Course Title', 'Description']).reset_index(drop=True)
     data['Description'] = data['Description'].apply(lambda x: x.replace('\n', ' ')[9:].strip())
 
