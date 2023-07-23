@@ -260,7 +260,7 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
     if lang in languages:
         bi_encoder, cross_encoder, passages = load_language(lang)
         query_vector = bi_encoder.encode([query])
-        index = faiss.read_index(f'{lang}.index')
+        index = faiss.read_index(os.path.join("model", lang, f'{lang}.index'))
         top_k = index.search(query_vector, 10)
         top_k_ids = top_k[1].tolist()[0]
         top_k_ids = list(np.unique(top_k_ids))
