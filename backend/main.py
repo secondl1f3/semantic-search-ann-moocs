@@ -229,11 +229,11 @@ def load_language(lang):
 
     model_name = languages[lang]['model_name']
     csv_files = languages[lang]['csv_files']
-    csv_path = os.path.join("model", lang, csv_files)
-    data = pd.read_csv(csv_path, lineterminator='\n')
-
-    data = data.dropna(subset=['Course Title', 'Description']).reset_index(drop=True)
-    data['Description'] = data['Description'].apply(lambda x: x.replace('\n', ' ')[9:].strip())
+    for csv_file in csv_files:
+        csv_path = os.path.join("model", lang, csv_file)
+        data = pd.read_csv(csv_path, lineterminator='\n')
+        data['Description'] = data['Description'].str[9:].str.strip()            
+        data['Instructor'] = data['Instructor'].map(lambda x: x.lstrip('Taught by\n').rstrip('aAbBcC'))
 
     bi_encoder = SentenceTransformer(model_name)
     top_k = 100
