@@ -20,5 +20,18 @@ class MoocMavenUser(HttpUser):
         # Make a GET request to the /providers/{lang} endpoint
         self.client.get(f"/providers/{lang}")
 
-    # Add more tasks as needed, simulating different user actions on the API
+    @task
+    def download_csv(self):
+        # Replace "english" with the desired language you want to download
+        language = "arabic"
+        url = f"/download/{language}"
+
+        # Make a GET request to download the CSV file
+        response = self.client.get(url, headers={"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyeXV1a3VzbyIsImV4cCI6MTY5MDAyNzIxMX0.kfAVCt9vv5K0xbOEQquZP-4-Ql4WhAk5OpjEYNTZGSA"})
+
+        # Check if the request was successful
+        if response.status_code == 200:
+            print(f"Downloaded CSV for language: {language}")
+        else:
+            print(f"Failed to download CSV for language: {language} - Status Code: {response.status_code}")
 

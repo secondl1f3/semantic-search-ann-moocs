@@ -4,6 +4,7 @@ import os
 import random
 import secrets
 import warnings
+import glob
 from datetime import datetime, timedelta
 from typing import List
 
@@ -223,6 +224,34 @@ def load_data(language):
 
     return languages[language]['bi_encoder'], languages[language]['passages']
 
+def load_language(lang):
+    print("Searching language:", lang)
+
+    model_name = languages[lang]['model_name']
+    csv_files = languages[lang]['csv_files']
+    data = pd.DataFrame()
+    for ix, csv in enumerate(glob.glob(csv_files[0])):
+        if ix == 0:
+            data = pd.read_csv(csv, lineterminator='\n')
+        else:
+            temp = pd.read_csv(csv, lineterminator='\n')
+            data = pd.concat([data, temp], axis=0).reset_index(drop=True)
+
+    data = data.dropna(subset=['Course Title', 'Description']).reset_index(drop=True)
+    data['Description'] = data['Description'].apply(lambda x: x.replace('\n', ' ')[9:].strip())
+
+    bi_encoder = SentenceTransformer(model_name)
+    top_k = 100
+
+    crossEncoder = cross_encoder
+    if lang == 'english':
+      crossEncoder = en_cross_encoder
+
+    passages = (data['Course Title'] + ' - ' + data['Instructor'] + ' - ' + data['Subject'] + ' - ' + data['Provider'] + ' - ' + data['Course_Link']).values.tolist()
+
+    return bi_encoder, crossEncoder, passages
+
+
 
 def search(query: str, lang: str, skip: int = 0, limit: int = 10):
     cache_key = f"{CACHE_PREFIX}{query}-{lang}-{skip}-{limit}"
@@ -234,23 +263,18 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
 
     results = []
     if lang in languages:
-        bi_encoder, passages = load_data(lang)
-        index = faiss.read_index(os.path.join("model", lang, f'{lang}.index'))
+        bi_encoder, cross_encoder, passages = load_language(lang)
         query_vector = bi_encoder.encode([query])
-        top_k = index.search(query_vector, limit + skip)
+        index = faiss.read_index(f'{lang}.index')
+        top_k = index.search(query_vector, 10)
         top_k_ids = top_k[1].tolist()[0]
         top_k_ids = list(np.unique(top_k_ids))
-        top_k_ids = [int(id) for id in top_k_ids]  # Convert int64 IDs to integers
+        top_k_ids = [int(id) for id in top_k_ids]
 
-        # Re-Ranking
         cross_inp = [[query, passages[hit]] for hit in top_k_ids]
         bienc_op = [passages[hit] for hit in top_k_ids]
-        if lang == 'english':
-            cross_scores = en_cross_encoder.predict(cross_inp)
-        else:
-            cross_scores = cross_encoder.predict(cross_inp)
+        cross_scores = cross_encoder.predict(cross_inp)
 
-        # Top-10 Cross-Encoder Re-ranker hits
         for hit in np.argsort(np.array(cross_scores))[::-1]:
             result = bienc_op[hit].split(" - ")
             result.insert(0, int(top_k_ids[hit]))
