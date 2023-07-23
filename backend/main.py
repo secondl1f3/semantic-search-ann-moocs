@@ -274,17 +274,19 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
         for hit in np.argsort(np.array(cross_scores))[::-1]:
             result = bienc_op[hit].split(" - ")
             result.insert(0, int(top_k_ids[hit]))
-            results.append(result)    
+            results.append(result)
 
         # Cache the results in Redis
         redis_client.set(cache_key, json.dumps(results))
-
+        print("result: ", results[0])
     return results
 
 
 def construct_responses(res):
     results = []
     for r in res:
+        print("-----")
+        print("res: ", r)
         result = {
             "id": r[0],
             "title": r[1],
