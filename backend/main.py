@@ -242,7 +242,7 @@ def load_language(lang):
     if lang == 'english':
       crossEncoder = en_cross_encoder
 
-    passages = (data['Course Title'] + ' - ' + data['Instructor'] + ' - ' + data['Subject'] + ' - ' + data['Provider'] + ' - ' + data['Course_Link']).values.tolist()
+    passages = (data['Course Title'] + ' - ' + data['Description'] + ' - ' + data['Instructor'] + ' - ' + data['Subject'] + ' - ' + data['Provider'] + ' - ' + data['Course_Link']).values.tolist()
 
     return bi_encoder, crossEncoder, passages
 
@@ -285,8 +285,6 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
 def construct_responses(res):
     results = []
     for r in res:
-        print("-----")
-        print("res: ", r)
         result = {
             "id": r[0],
             "title": r[1],
