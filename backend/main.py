@@ -261,7 +261,7 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
         bi_encoder, cross_encoder, passages = load_language(lang)
         query_vector = bi_encoder.encode([query])
         index = faiss.read_index(os.path.join("model", lang, f'{lang}.index'))
-        top_k = index.search(query_vector, 10)
+        top_k = index.search(query_vector, limit + skip)
         top_k_ids = top_k[1].tolist()[0]
         top_k_ids = list(np.unique(top_k_ids))
         top_k_ids = [int(id) for id in top_k_ids]
@@ -270,10 +270,11 @@ def search(query: str, lang: str, skip: int = 0, limit: int = 10):
         bienc_op = [passages[hit] for hit in top_k_ids]
         cross_scores = cross_encoder.predict(cross_inp)
 
+        # Top-10 Cross-Encoder Re-ranker hits
         for hit in np.argsort(np.array(cross_scores))[::-1]:
             result = bienc_op[hit].split(" - ")
             result.insert(0, int(top_k_ids[hit]))
-            results.append(result)
+            results.append(result)    
 
         # Cache the results in Redis
         redis_client.set(cache_key, json.dumps(results))
@@ -322,14 +323,12 @@ async def root():
 def perform_search(request: SearchRequest):
     res = search(request.query, request.lang, request.skip, request.limit)
     total_results = len(res)
-    # Parse the JSON-encoded results string into a list of dictionaries
+    print(res[0])
     results = json.loads(construct_responses(res))
-    # Construct the response
     response_data = {
         "results": results,
         "total_results": total_results
     }
-    # Return the response with appropriate headers
     return response_data
 
 
