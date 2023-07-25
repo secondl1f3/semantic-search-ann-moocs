@@ -354,25 +354,45 @@ def get_result_by_id(query: str = "", lang: str = "", id: int = 0):
     raise HTTPException(status_code=404, detail="Result not found")
 
 
-@app.get("/download/{language}", response_class=Response)
+# @app.get("/download/{language}", response_class=Response)
+# def get_csv_file(language: str, token: str = Depends(oauth2_scheme)):
+#     verify_token(token)
+#     # Assuming you have language-specific CSV files in a "dataset" folder
+#     file_path = os.path.join("model", language, f"{language}.csv")
+
+#     # Open the CSV file
+#     with open(file_path, "r") as file:
+#         # Read the contents of the file
+#         csv_content = file.read()
+
+#     # Set the response headers
+#     response_headers = {
+#         "Content-Disposition": f"attachment; filename={language}.csv",
+#         "Content-Type": "text/csv"
+#     }
+
+#     # Return the CSV content as the response
+#     return Response(content=csv_content, headers=response_headers)
+
+
+@app.get("/download/{language}", response_model=dict)
 def get_csv_file(language: str, token: str = Depends(oauth2_scheme)):
     verify_token(token)
     # Assuming you have language-specific CSV files in a "dataset" folder
     file_path = os.path.join("model", language, f"{language}.csv")
 
-    # Open the CSV file
-    with open(file_path, "r") as file:
-        # Read the contents of the file
-        csv_content = file.read()
+    # Generate the URL for the dataset file
+    dataset_url = f"http://api.moocmaven.com/model/{language}/{language}.csv"
 
-    # Set the response headers
-    response_headers = {
-        "Content-Disposition": f"attachment; filename={language}.csv",
-        "Content-Type": "text/csv"
+    # Create a dictionary to represent the JSON response
+    response_data = {
+        "language": language,
+        "url": dataset_url
     }
 
-    # Return the CSV content as the response
-    return Response(content=csv_content, headers=response_headers)
+    # Return the JSON response
+    return response_data
+
 
 
 def verify_token(token):
