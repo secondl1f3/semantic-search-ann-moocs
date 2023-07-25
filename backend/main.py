@@ -19,6 +19,7 @@ from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import StreamingResponse
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, CrossEncoder
@@ -374,24 +375,42 @@ def get_result_by_id(query: str = "", lang: str = "", id: int = 0):
 #     # Return the CSV content as the response
 #     return Response(content=csv_content, headers=response_headers)
 
-
-@app.get("/download/{language}", response_model=dict)
+@app.get("/download/{language}", response_class=StreamingResponse)
 def get_csv_file(language: str, token: str = Depends(oauth2_scheme)):
     verify_token(token)
     # Assuming you have language-specific CSV files in a "dataset" folder
     file_path = os.path.join("model", language, f"{language}.csv")
 
-    # Generate the URL for the dataset file
-    dataset_url = f"http://api.moocmaven.com/model/{language}/{language}.csv"
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
 
-    # Create a dictionary to represent the JSON response
-    response_data = {
-        "language": language,
-        "url": dataset_url
+    # Set the response headers for the downloadable file
+    headers = {
+        "Content-Disposition": f"attachment; filename={language}.csv"
     }
 
-    # Return the JSON response
-    return response_data
+    # Return the file as the response with the appropriate headers
+    return StreamingResponse(open(file_path, "rb"), headers=headers)
+
+
+# @app.get("/download/{language}", response_model=dict)
+# def get_csv_file(language: str, token: str = Depends(oauth2_scheme)):
+#     verify_token(token)
+#     # Assuming you have language-specific CSV files in a "dataset" folder
+#     file_path = os.path.join("model", language, f"{language}.csv")
+
+#     # Generate the URL for the dataset file
+#     dataset_url = f"http://api.moocmaven.com/model/{language}/{language}.csv"
+
+#     # Create a dictionary to represent the JSON response
+#     response_data = {
+#         "language": language,
+#         "url": dataset_url
+#     }
+
+#     # Return the JSON response
+#     return response_data
 
 
 
