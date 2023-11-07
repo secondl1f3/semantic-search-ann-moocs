@@ -24,7 +24,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from fastapi import FastAPI, Request
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -217,7 +217,7 @@ Session = sessionmaker(bind=engine)
 # Define a function to get the country based on IP address
 def get_country_from_ip(ip):
     # Replace 'YOUR_API_KEY' with your actual API key from ipstack
-    response = requests.get(f'http://api.ipstack.com/{ip}?access_key=YOUR_API_KEY')
+    response = requests.get(f'http://api.ipstack.com/{ip}?access_key=0e733b458ff124358ceea3ebf1a2a92b')
     data = response.json()
     return data.get('country_name', 'Unknown')
 
@@ -351,7 +351,17 @@ def construct_response_by_id(res):
 
 
 @app.get("/")
-async def root():
+async def track_homepage(request: Request):
+    page_url = "/"
+    visitor_ip = request.client.host
+    country = get_country_from_ip(visitor_ip)
+
+    new_stat = VisitorStat(page_url=page_url, visitor_ip=visitor_ip, country=country)
+    session = Session()
+    session.add(new_stat)
+    session.commit()
+    session.close()
+
     return {"message": "Welcome to MoocMaven the first unified MOOCs Semantic Search platform!"}
 
 
@@ -533,19 +543,6 @@ def get_random_title(lang: str):
 
     except FileNotFoundError:
         return {"error": "Language not found"}
-
-
-@app.get('/track/{page_url}')
-async def track_page_view(page_url: str, request: Request):
-    visitor_ip = request.client.host
-    country = get_country_from_ip(visitor_ip)
-
-    new_stat = VisitorStat(page_url=page_url, visitor_ip=visitor_ip, country=country)
-    session = Session()
-    session.add(new_stat)
-    session.commit()
-    session.close()
-    return {'message': 'Page view tracked successfully!'}
 
 
 # Create a route to retrieve statistics based on country
