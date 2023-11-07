@@ -23,6 +23,10 @@ from fastapi.responses import StreamingResponse
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, CrossEncoder
+from fastapi import FastAPI, Request
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 from redis_config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 
@@ -183,7 +187,6 @@ languages = {
     }
 }
 
-
 # rate_limit = Rate(limit=2, period=Minutes(1))
 # limiter = RateLimiter(rate_limit)
 #
@@ -195,6 +198,28 @@ languages = {
 #         content={"message": "Too many requests"}
 #     )
 # )
+
+Base = declarative_base()
+
+
+class VisitorStat(Base):
+    __tablename__ = 'visitor_stats'
+    id = Column(Integer, primary_key=True)
+    page_url = Column(String)
+    visitor_ip = Column(String)
+    country = Column(String)  # Add a field to store the country
+
+
+engine = create_engine('sqlite:///visitor_stats.db')
+Session = sessionmaker(bind=engine)
+
+
+# Define a function to get the country based on IP address
+def get_country_from_ip(ip):
+    # Replace 'YOUR_API_KEY' with your actual API key from ipstack
+    response = requests.get(f'http://api.ipstack.com/{ip}?access_key=YOUR_API_KEY')
+    data = response.json()
+    return data.get('country_name', 'Unknown')
 
 
 @app.on_event("startup")
@@ -225,6 +250,7 @@ def load_data(language):
 
     return languages[language]['bi_encoder'], languages[language]['passages']
 
+
 def load_language(lang):
     print("Searching language:", lang)
 
@@ -249,14 +275,13 @@ def load_language(lang):
     # The bi-encoder will retrieve 100 documents. We use a cross-encoder, to re-rank the results list to improve the quality
     cross_encoder = non_en_cross_encoder
     if lang == 'english':
-      cross_encoder = en_cross_encoder
+        cross_encoder = en_cross_encoder
 
-    passages = (data['Course Title'] + ' - ' + data['Description'] + ' - ' + data['Instructor'] + ' - ' + data['Subject'] + ' - ' + data['Provider'] + ' - ' + data['Course_Link']).values.tolist()
+    passages = (data['Course Title'] + ' - ' + data['Description'] + ' - ' + data['Instructor'] + ' - ' + data[
+        'Subject'] + ' - ' + data['Provider'] + ' - ' + data['Course_Link']).values.tolist()
 
     # If you like, you can also limit the number of passages you want to use
     return bi_encoder, cross_encoder, passages
-
-
 
 
 def search(query: str, lang: str, skip: int = 0, limit: int = 10):
@@ -413,7 +438,6 @@ def get_csv_file(language: str, token: str = Depends(oauth2_scheme)):
 #     return response_data
 
 
-
 def verify_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
@@ -509,6 +533,28 @@ def get_random_title(lang: str):
 
     except FileNotFoundError:
         return {"error": "Language not found"}
+
+
+@app.get('/track/{page_url}')
+async def track_page_view(page_url: str, request: Request):
+    visitor_ip = request.client.host
+    country = get_country_from_ip(visitor_ip)
+
+    new_stat = VisitorStat(page_url=page_url, visitor_ip=visitor_ip, country=country)
+    session = Session()
+    session.add(new_stat)
+    session.commit()
+    session.close()
+    return {'message': 'Page view tracked successfully!'}
+
+
+# Create a route to retrieve statistics based on country
+@app.get('/stats_by_country')
+async def get_stats_by_country():
+    session = Session()
+    stats = session.query(VisitorStat.country, func.count(VisitorStat.id)).group_by(VisitorStat.country).all()
+    session.close()
+    return {'statistics': stats}
 
 
 if __name__ == "__main__":
