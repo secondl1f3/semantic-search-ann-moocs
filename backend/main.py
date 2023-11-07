@@ -211,7 +211,8 @@ class VisitorStat(Base):
     country = Column(String)  # Add a field to store the country
 
 
-engine = create_engine('sqlite:///visitor_stats.db')
+# Modify the engine to use the database file in /root
+engine = create_engine('sqlite:////root/visitor_stats.db')
 Session = sessionmaker(bind=engine)
 
 
