@@ -553,7 +553,8 @@ async def get_stats_by_country():
     session = Session()
     stats = session.query(VisitorStat.country, func.count(VisitorStat.id)).group_by(VisitorStat.country).all()
     session.close()
-    return {'statistics': stats}
+    return {'statistics': [{'country': stat[0], 'count': stat[1]} for stat in stats]}
+
 
 
 if __name__ == "__main__":
