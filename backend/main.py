@@ -13,6 +13,7 @@ import jwt
 import numpy as np
 import pandas as pd
 import redis
+import requests
 import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI, Response, HTTPException
