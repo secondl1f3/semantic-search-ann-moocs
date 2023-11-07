@@ -371,7 +371,17 @@ async def track_homepage(request: Request):
 
 
 @app.post("/search", response_model=SearchResponse)
-def perform_search(request: SearchRequest):
+def perform_search(request: SearchRequest, requests: Request):
+    page_url = "/search"
+    visitor_ip = requests.client.host
+    country, city = get_country_and_city_from_ip(visitor_ip)  # Modified line
+
+    new_stat = VisitorStat(page_url=page_url, visitor_ip=visitor_ip, country=country, city=city)  # Modified line
+    session = Session()
+    session.add(new_stat)
+    session.commit()
+    session.close()
+
     res = search(request.query, request.lang, request.skip, request.limit)
     total_results = len(res)
     print(res[0])
