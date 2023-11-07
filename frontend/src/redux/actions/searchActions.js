@@ -5,15 +5,30 @@ export const GET_LANG = "GET_LANG";
 
 const timeout = 120000; //milisec
 
+const getIpAddress = async () => {
+  try {
+    const response = await axios.get('https://api.ipify.org');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching IP address:', error);
+    return null;
+  }
+};
+
 export const postSearch = ({ searchValue, lang }) => {
-  const url = `https://api.moocmaven.com/search`;
-  const body = {
-    query: searchValue,
-    lang: lang || "english",
-    skip: 0,
-    limit: 20,
-  };
-  return (dispatch) => {
+  return async (dispatch) => {
+    // Get the user's IP address
+    const ipAddress = await getIpAddress();
+
+    const url = `https://api.moocmaven.com/search`;
+    const body = {
+      query: searchValue,
+      lang: lang || 'english',
+      skip: 0,
+      limit: 20,
+      ipAddress: ipAddress, // Add the IP address to the body
+    };
+
     dispatch({
       type: POST_SEARCH,
       response: {
@@ -24,7 +39,7 @@ export const postSearch = ({ searchValue, lang }) => {
     });
 
     axios({
-      method: "POST",
+      method: 'POST',
       url: url,
       data: body,
       timeout: timeout,

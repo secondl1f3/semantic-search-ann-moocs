@@ -129,6 +129,7 @@ class SearchRequest(BaseModel):
     lang: str
     skip: int = 0
     limit: int = 10
+    ipaddress: str
 
 
 print("start app")
@@ -371,9 +372,9 @@ async def track_homepage(request: Request):
 
 
 @app.post("/search", response_model=SearchResponse)
-def perform_search(request: SearchRequest, requests: Request):
+def perform_search(request: SearchRequest):
     page_url = "/search"
-    visitor_ip = requests.client.host
+    visitor_ip = request.ipaddress
     country, city = get_country_and_city_from_ip(visitor_ip)  # Modified line
 
     new_stat = VisitorStat(page_url=page_url, visitor_ip=visitor_ip, country=country, city=city)  # Modified line
@@ -564,10 +565,9 @@ def get_random_title(lang: str):
 @app.get('/stats_by_country')
 async def get_stats_by_country():
     session = Session()
-    stats = session.query(VisitorStat.country, func.count(VisitorStat.id)).group_by(VisitorStat.country).all()
+    stats = session.query(VisitorStat.city, VisitorStat.country, func.count(VisitorStat.id)).group_by(VisitorStat.country).all()
     session.close()
-    return {'statistics': [{'country': stat[0], 'count': stat[1]} for stat in stats]}
-
+    return {'statistics': [{'city': stat[0], 'country': stat[1], 'count': stat[2]} for stat in stats]}
 
 
 if __name__ == "__main__":
