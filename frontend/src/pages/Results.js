@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import { getLang, postSearch } from "../redux/actions/searchActions";
 import { AlertCircle } from "tabler-icons-react";
+import PageFooter from "../components/PageFooter";
 
 const Results = () => {
   const dispatch = useDispatch();

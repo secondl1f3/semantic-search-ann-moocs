@@ -22,7 +22,7 @@ const Navbar = ({
         direction="row"
         wrap="no-wrap"
       >
-        <a rel="noopener" href="https://www.moocmaven.com">
+        <a rel="noopener" href="/">
           <Image
             size="xs"
             fit="contain"

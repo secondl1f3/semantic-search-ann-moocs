@@ -25444,3 +25444,33 @@ div.ant-typography-edit-content {
         opacity: 0
     }
 }
+
+.statistics-container {
+    text-align: center;
+}
+
+.logo {
+    width: 300px;
+}
+
+.statistics-content {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.statistics-content h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.statistics-content ul {
+    list-style: none;
+    padding: 0;
+}
+
+.statistics-content li {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+
