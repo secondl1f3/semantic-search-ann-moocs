@@ -208,7 +208,8 @@ class VisitorStat(Base):
     id = Column(Integer, primary_key=True)
     page_url = Column(String)
     visitor_ip = Column(String)
-    country = Column(String)  # Add a field to store the country
+    country = Column(String)
+    city = Column(String)
 
 
 # Modify the engine to use the database file in /root
@@ -217,11 +218,13 @@ Session = sessionmaker(bind=engine)
 
 
 # Define a function to get the country based on IP address
-def get_country_from_ip(ip):
+def get_country_and_city_from_ip(ip):
     # Replace 'YOUR_API_KEY' with your actual API key from ipstack
     response = requests.get(f'http://api.ipstack.com/{ip}?access_key=0e733b458ff124358ceea3ebf1a2a92b')
     data = response.json()
-    return data.get('country_name', 'Unknown')
+    country_name = data.get('country_name', 'Unknown')
+    city = data.get('city', 'Unknown')
+    return country_name, city
 
 
 @app.on_event("startup")
@@ -356,9 +359,9 @@ def construct_response_by_id(res):
 async def track_homepage(request: Request):
     page_url = "/"
     visitor_ip = request.client.host
-    country = get_country_from_ip(visitor_ip)
+    country, city = get_country_and_city_from_ip(visitor_ip)  # Modified line
 
-    new_stat = VisitorStat(page_url=page_url, visitor_ip=visitor_ip, country=country)
+    new_stat = VisitorStat(page_url=page_url, visitor_ip=visitor_ip, country=country, city=city)  # Modified line
     session = Session()
     session.add(new_stat)
     session.commit()
