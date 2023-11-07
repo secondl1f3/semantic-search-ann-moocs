@@ -23,7 +23,7 @@ export const postSearch = ({ searchValue, lang }) => {
     const url = `https://api.moocmaven.com/search`;
     const body = {
       query: searchValue,
-      lang: lang || 'english',
+      lang: 'english',
       skip: 0,
       limit: 20,
       ipAddress: ipAddress, // Add the IP address to the body
