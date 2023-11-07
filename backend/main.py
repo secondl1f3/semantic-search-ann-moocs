@@ -129,7 +129,7 @@ class SearchRequest(BaseModel):
     lang: str
     skip: int = 0
     limit: int = 10
-    ipaddress: str
+    ipAddress: str
 
 
 print("start app")
@@ -374,7 +374,7 @@ async def track_homepage(request: Request):
 @app.post("/search", response_model=SearchResponse)
 def perform_search(request: SearchRequest):
     page_url = "/search"
-    visitor_ip = request.ipaddress
+    visitor_ip = request.ipAddress
     country, city = get_country_and_city_from_ip(visitor_ip)  # Modified line
 
     new_stat = VisitorStat(page_url=page_url, visitor_ip=visitor_ip, country=country, city=city)  # Modified line
